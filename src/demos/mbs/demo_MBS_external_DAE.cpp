@@ -47,6 +47,10 @@ using std::endl;
 /// - 1 state: pendulum angle.
 /// - 1 state derivative.
 /// - 0 constraints.
+///
+/// Equation to implement:
+///     M*y'' = F
+///     I * theta'' = - m * g * cos(theta)
 class Pendulum2D_ODE : public ChExternalDynamicsDAE {
   public:
     // Simple pendulum considering a solid rod - mass distributed along the rod of length 2L.
@@ -66,7 +70,7 @@ class Pendulum2D_ODE : public ChExternalDynamicsDAE {
     virtual bool IsStiff() const override { return false; }
 
     virtual void SetInitialConditions(ChVectorDynamic<>& y0, ChVectorDynamic<>& yd0) override {
-        y0(0) = 0;  // theta
+        y0(0) = 0;  // theta, starting with horizontal rod - pendulum would be in equilibrium if theta = pi/2
         yd0(0) = 0;
     }
 
@@ -77,6 +81,7 @@ class Pendulum2D_ODE : public ChExternalDynamicsDAE {
         M(0, 0) = I + m * L * L;
     }
 
+    // May not be overridden - Chrono will simply multiply matrix M and vector y
     virtual bool CalculateMassTimesVector(const ChVectorDynamic<>& v, ChVectorDynamic<>& Mv) override {
         Mv(0) = (I + m * L * L) * v(0);
 
