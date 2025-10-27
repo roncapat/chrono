@@ -49,6 +49,11 @@ using std::endl;
 /// - 0 constraints.
 class Pendulum2D_ODE : public ChExternalDynamicsDAE {
   public:
+    // Simple pendulum considering a solid rod - mass distributed along the rod of length 2L.
+    // Note: full length of rod is 2*L !!!!
+    // Moment of Inertia I is defined in the rod CoM (middle of the rod).
+    // See https://en.wikipedia.org/wiki/List_of_moments_of_inertia
+    // I_center = m * length^2 / 12 = m * length/2 * length/2 * 1/3 = m * L * L * 1/3
     Pendulum2D_ODE(double L, double mass) : g(9.8), L(L), m(mass), I(mass * L * L * CH_1_3) {}
 
     virtual Pendulum2D_ODE* Clone() const override { return new Pendulum2D_ODE(*this); }
@@ -65,6 +70,8 @@ class Pendulum2D_ODE : public ChExternalDynamicsDAE {
         yd0(0) = 0;
     }
 
+    // Express I in the pendulum pivot point - use Huygens-Steiner to compute I at the rod tip
+    // See again https://en.wikipedia.org/wiki/List_of_moments_of_inertia
     virtual void CalculateMassMatrix(ChMatrixDynamic<>& M) override {
         M.setZero();
         M(0, 0) = I + m * L * L;
