@@ -162,10 +162,12 @@ class Pendulum2D_DAE : public ChExternalDynamicsDAE {
                                              const ChVectorDynamic<>& y,
                                              const ChVectorDynamic<>& c,
                                              ChMatrixDynamic<>& J) override {
+        // partial derivatives of: x - L * cos(theta) = 0
         J(0, 0) = 1;
         J(0, 1) = 0;
         J(0, 2) = L * std::sin(y(2));
 
+        // partial derivatives of: y - L * sin(theta) = 0
         J(1, 0) = 0;
         J(1, 1) = 1;
         J(1, 2) = -L * std::cos(y(2));
@@ -206,7 +208,7 @@ class Pendulum3D_DAE : public ChExternalDynamicsDAE {
         ChVector3d p0(L, 0, 0);
         ChQuaterniond q0 = QUNIT;
         y0.segment(0, 3) = p0.eigen();
-        y0.segment(3, 4) = q0.eigen();
+        y0.segment(3, 4) = q0.eigen(); // The angular part of the state is a quaternion!
 
         yd0.setZero();
     }
@@ -220,8 +222,8 @@ class Pendulum3D_DAE : public ChExternalDynamicsDAE {
         Mv(0) = m * v(0);
         Mv(1) = m * v(1);
         Mv(2) = m * v(2);
-        Mv(3) = I.x() * v(3);
-        Mv(4) = I.y() * v(4);
+        Mv(3) = I.x() * v(3); // Note: rotational part of v has only three components
+        Mv(4) = I.y() * v(4); // see IncrementState(..) method to see how the state quaternion is updated
         Mv(5) = I.z() * v(5);
 
         return true;
@@ -324,10 +326,12 @@ class Pendulum3D_DAE : public ChExternalDynamicsDAE {
     virtual void IncrementState(const ChVectorDynamic<>& x,
                                 const ChVectorDynamic<>& Dv,
                                 ChVectorDynamic<>& x_new) override {
+        // Positional part (x,y,z)
         x_new(0) = x(0) + Dv(0);
         x_new(1) = x(1) + Dv(1);
         x_new(2) = x(2) + Dv(2);
 
+        // Rotational part (update quaternion state with "delta" angle around x, y, z axes)
         ChQuaternion<> q_old(x.segment(3, 4));
         ChQuaternion<> rel_q;
         rel_q.SetFromRotVec(Dv.segment(3, 3));
@@ -338,10 +342,12 @@ class Pendulum3D_DAE : public ChExternalDynamicsDAE {
     virtual void CalculateStateIncrement(const ChVectorDynamic<>& x,
                                          const ChVectorDynamic<>& x_new,
                                          ChVectorDynamic<>& Dv) override {
+        // Positional part (x,y,z)
         Dv(0) = x_new(0) - x(0);
         Dv(1) = x_new(0) - x(0);
         Dv(2) = x_new(0) - x(0);
 
+        // Rotational part (calculate "delta" angle around x, y, z axes from evolving quaternion)
         ChQuaternion<> q_old(x.segment(3, 4));
         ChQuaternion<> q_new(x_new.segment(3, 4));
         ChQuaternion<> rel_q = q_old.GetConjugate() * q_new;
